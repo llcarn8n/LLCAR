@@ -59,6 +59,9 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
+  # Launch interactive console mode
+  python main.py --interactive
+
   # Process a video file
   python main.py --video /path/to/video.mp4
 
@@ -79,8 +82,15 @@ Examples:
         """
     )
 
+    # Interactive mode argument
+    parser.add_argument(
+        '--interactive', '-i',
+        action='store_true',
+        help='Launch interactive console mode'
+    )
+
     # Input arguments
-    input_group = parser.add_mutually_exclusive_group(required=True)
+    input_group = parser.add_mutually_exclusive_group(required=False)
     input_group.add_argument(
         '--video', '-v',
         type=str,
@@ -195,6 +205,20 @@ Examples:
     setup_logging(log_level, log_file)
 
     logger = logging.getLogger(__name__)
+
+    # Check if interactive mode
+    if args.interactive:
+        logger.info("Starting LLCAR in interactive console mode")
+        from src.console import InteractiveConsole
+        console = InteractiveConsole(config=config)
+        return console.run()
+
+    # Check if video or audio is provided
+    if not args.video and not args.audio:
+        parser.print_help()
+        print("\nError: Either --video, --audio, or --interactive must be specified")
+        return 1
+
     logger.info("Starting LLCAR Video Processing Pipeline")
 
     # Determine parameters (CLI args override config)
