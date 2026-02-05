@@ -1,0 +1,64 @@
+# LLCAR Video Processing Pipeline Configuration
+
+# Language settings
+# Supported languages: en (English), ru (Russian), zh (Chinese)
+language: "en"
+
+# Model variant selection
+# For English: "default", "whisperx"
+# For Russian: "default" (bond005/whisper-podlodka-turbo), "alternative" (antony66/whisper-large-v3-russian), "turbo"
+# For Chinese: "default"
+model_variant: "default"
+
+# Device configuration
+# Options: "auto", "cuda", "cpu"
+device: "auto"
+
+# HuggingFace token for pyannote.audio
+# Required for speaker diarization
+# Get token from: https://huggingface.co/settings/tokens
+# You can also set this via HF_TOKEN environment variable
+hf_token: null
+
+# Output settings
+output:
+  directory: "./output"
+  formats:
+    - "json"
+    - "txt"
+    - "csv"
+
+# Speaker diarization settings
+diarization:
+  # Expected number of speakers (null for automatic detection)
+  num_speakers: null
+
+# Post-processing settings
+postprocessing:
+  # Remove filler words (um, uh, etc.)
+  remove_fillers: true
+  # Censor profanity
+  remove_profanity: true
+
+# Keyword extraction settings
+keywords:
+  # Enable keyword extraction
+  enabled: true
+  # Method: "tfidf" or "textrank"
+  method: "tfidf"
+  # Number of top keywords to extract
+  top_n: 10
+
+# Audio extraction settings
+audio:
+  # Sample rate in Hz (16000 recommended for ASR)
+  sample_rate: 16000
+  # Number of audio channels (1 for mono)
+  channels: 1
+
+# Logging settings
+logging:
+  # Log level: DEBUG, INFO, WARNING, ERROR, CRITICAL
+  level: "INFO"
+  # Log file path (null to disable file logging)
+  log_file: null
