@@ -1,4 +1,4 @@
-.PHONY: help install test clean run docker-build docker-run
+.PHONY: help install test clean run console docker-build docker-run
 
 help:
 	@echo "LLCAR Video Processing Pipeline - Makefile"
@@ -8,6 +8,7 @@ help:
 	@echo "  test          - Run component tests"
 	@echo "  clean         - Clean generated files and cache"
 	@echo "  run           - Run the pipeline (set VIDEO=/path/to/video.mp4)"
+	@echo "  console       - Launch interactive console mode"
 	@echo "  docker-build  - Build Docker image"
 	@echo "  docker-run    - Run in Docker (set VIDEO=/path/to/video.mp4)"
 	@echo ""
@@ -34,6 +35,10 @@ run:
 		exit 1; \
 	fi
 	@python3 main.py --video $(VIDEO) $(ARGS)
+
+console:
+	@echo "Launching interactive console..."
+	@python3 main.py --interactive
 
 docker-build:
 	@echo "Building Docker image..."
