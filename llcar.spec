@@ -12,12 +12,15 @@ from PyInstaller.utils.hooks import collect_data_files, collect_submodules
 
 block_cipher = None
 
-# Collect all data files
+# Get the absolute path to the project root
+PROJECT_ROOT = os.path.abspath(SPECPATH)
+
+# Collect all data files with absolute paths
 datas = [
-    ('config.yaml', '.'),
-    ('.env.example', '.'),
-    ('README.md', '.'),
-    ('LICENSE', '.'),
+    (os.path.join(PROJECT_ROOT, 'config.yaml'), '.'),
+    (os.path.join(PROJECT_ROOT, '.env.example'), '.'),
+    (os.path.join(PROJECT_ROOT, 'README.md'), '.'),
+    (os.path.join(PROJECT_ROOT, 'LICENSE'), '.'),
 ]
 
 # Collect hidden imports

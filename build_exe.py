@@ -59,6 +59,39 @@ def check_dependencies():
     return True
 
 
+def check_required_files():
+    """Check if all required files for building exist."""
+    print("Checking required files...")
+
+    required_files = [
+        'main.py',
+        'llcar.spec',
+        'config.yaml',
+        '.env.example',
+        'README.md',
+        'LICENSE',
+    ]
+
+    all_exist = True
+    for file_name in required_files:
+        file_path = Path(file_name)
+        if file_path.exists():
+            print(f"  ✓ {file_name}")
+        else:
+            print(f"  ✗ {file_name} NOT FOUND")
+            all_exist = False
+
+    print()
+
+    if not all_exist:
+        print("ERROR: Some required files are missing!")
+        print("Please ensure you are running this script from the LLCAR root directory")
+        print("and that all necessary files exist.")
+        return False
+
+    return True
+
+
 def build_executable():
     """Build the executable using PyInstaller."""
     print("Building executable with PyInstaller...")
@@ -192,6 +225,10 @@ def main():
     # Check we're in the right directory
     if not os.path.exists('main.py'):
         print("Error: Please run this script from the LLCAR root directory")
+        return 1
+
+    # Check required files exist
+    if not check_required_files():
         return 1
 
     # Clean previous builds
