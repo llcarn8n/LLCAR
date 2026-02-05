@@ -1,0 +1,11 @@
+# Build Requirements for LLCAR
+# These are additional packages needed for building the Windows executable and installer
+
+# Executable builder
+pyinstaller>=5.13.0
+
+# Optional: For creating installers programmatically
+# inno-setup-py>=0.1.0
+
+# For testing the build
+pytest>=7.0.0

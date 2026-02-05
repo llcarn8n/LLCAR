@@ -92,3 +92,10 @@ temp/
 .coverage
 htmlcov/
 .tox/
+
+# Build artifacts for Windows executable
+*.spec.bak
+installer_output/
+*.exe
+*.msi
+*.bat.bak
