@@ -63,9 +63,13 @@ output/
 *.avi
 *.mkv
 *.flac
-*.json
-*.csv
-*.txt
+
+# Allow requirements.txt but ignore other txt files in output
+!requirements.txt
+!README.txt
+output/*.json
+output/*.csv
+output/*.txt
 
 # Logs
 logs/
