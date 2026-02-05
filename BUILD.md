@@ -2,6 +2,26 @@
 
 This document describes how to build a standalone Windows executable and installer for LLCAR.
 
+## Quick Start
+
+**TL;DR: To build the Windows installer:**
+
+```cmd
+# 1. Install build dependencies
+pip install -r requirements-build.txt
+
+# 2. Build the executable
+python build_exe.py
+
+# 3. Install Inno Setup from https://jrsoftware.org/isdl.php
+
+# 4. Open installer.iss in Inno Setup and click Compile
+
+# 5. Find your installer in installer_output/LLCAR_Setup_1.0.0.exe
+```
+
+---
+
 ## Prerequisites
 
 ### Required Software
