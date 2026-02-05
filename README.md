@@ -27,6 +27,8 @@ cd LLCAR
 1. См. подробную инструкцию в [BUILD.md](BUILD.md)
 2. Или используйте готовые релизы (когда будут опубликованы): [GitHub Releases](https://github.com/llcarn8n/LLCAR/releases)
 
+**Для разработчиков:** См. [RELEASE_GUIDE.md](RELEASE_GUIDE.md) для создания релизов с установщиками.
+
 **Подробная документация по загрузке:** [DOWNLOAD.md](DOWNLOAD.md)
 
 ---
