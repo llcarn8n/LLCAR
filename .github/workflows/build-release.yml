@@ -1,0 +1,82 @@
+name: Build and Release Windows Installer
+
+on:
+  release:
+    types: [created, published]
+  workflow_dispatch:
+    inputs:
+      tag_name:
+        description: 'Tag name for the release'
+        required: true
+        default: 'v1.0.0'
+
+jobs:
+  build-windows:
+    name: Build Windows Executable and Installer
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install -r requirements-build.txt
+
+      - name: Build executable with PyInstaller
+        run: |
+          python build_exe.py
+
+      - name: Create portable ZIP package
+        run: |
+          cd dist
+          Compress-Archive -Path llcar -DestinationPath LLCAR_Portable_${{ github.event.release.tag_name || github.event.inputs.tag_name }}.zip
+        shell: pwsh
+
+      - name: Install Inno Setup
+        run: |
+          choco install innosetup -y
+
+      - name: Build installer with Inno Setup
+        run: |
+          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer.iss
+        shell: pwsh
+
+      - name: Upload Portable ZIP to Release
+        if: github.event_name == 'release'
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ github.event.release.upload_url }}
+          asset_path: ./dist/LLCAR_Portable_${{ github.event.release.tag_name }}.zip
+          asset_name: LLCAR_Portable_${{ github.event.release.tag_name }}.zip
+          asset_content_type: application/zip
+
+      - name: Upload Installer to Release
+        if: github.event_name == 'release'
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ github.event.release.upload_url }}
+          asset_path: ./installer_output/LLCAR_Setup_1.0.0.exe
+          asset_name: LLCAR_Setup_${{ github.event.release.tag_name }}.exe
+          asset_content_type: application/vnd.microsoft.portable-executable
+
+      - name: Upload artifacts (for manual workflow)
+        if: github.event_name == 'workflow_dispatch'
+        uses: actions/upload-artifact@v4
+        with:
+          name: LLCAR-Windows-Build
+          path: |
+            dist/LLCAR_Portable_${{ github.event.inputs.tag_name }}.zip
+            installer_output/LLCAR_Setup_1.0.0.exe
+          retention-days: 30

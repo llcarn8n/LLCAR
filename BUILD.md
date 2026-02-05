@@ -2,6 +2,26 @@
 
 This document describes how to build a standalone Windows executable and installer for LLCAR.
 
+## Quick Start
+
+**TL;DR: To build the Windows installer:**
+
+```cmd
+# 1. Install build dependencies
+pip install -r requirements-build.txt
+
+# 2. Build the executable
+python build_exe.py
+
+# 3. Install Inno Setup from https://jrsoftware.org/isdl.php
+
+# 4. Open installer.iss in Inno Setup and click Compile
+
+# 5. Find your installer in installer_output/LLCAR_Setup_1.0.0.exe
+```
+
+---
+
 ## Prerequisites
 
 ### Required Software
@@ -270,47 +290,35 @@ pip install torch torchvision torchaudio --index-url https://download.pytorch.or
 
 ### Using GitHub Actions
 
-Create `.github/workflows/build-windows.yml`:
+We have a GitHub Actions workflow that automatically builds and uploads installers to releases.
 
-```yaml
-name: Build Windows Installer
+The workflow is located at `.github/workflows/build-release.yml` and:
+- Triggers automatically when a release is created
+- Builds the Windows executable
+- Creates the portable ZIP package
+- Builds the installer with Inno Setup
+- Uploads both files to the GitHub release
 
-on:
-  release:
-    types: [created]
+**To use it:**
+1. Create a tag and push it: `git tag v1.0.0 && git push origin v1.0.0`
+2. Create a release on GitHub using that tag
+3. The workflow will automatically build and upload the installers
 
-jobs:
-  build:
-    runs-on: windows-latest
-    steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
-        with:
-          python-version: '3.10'
-      - name: Install dependencies
-        run: pip install -r requirements.txt pyinstaller
-      - name: Build executable
-        run: python build_exe.py
-      - name: Upload artifact
-        uses: actions/upload-artifact@v3
-        with:
-          name: LLCAR-Windows
-          path: dist/llcar/
-```
+**For detailed instructions, see:** [RELEASE_GUIDE.md](RELEASE_GUIDE.md)
 
 ## Release Checklist
 
-Before releasing a new version:
+**⚠️ Important:** See [RELEASE_GUIDE.md](RELEASE_GUIDE.md) for the complete release process.
+
+Quick checklist before releasing:
 
 - [ ] Update version in `setup.py`
 - [ ] Update version in `installer.iss`
-- [ ] Update version in `build_exe.py` (if hardcoded)
 - [ ] Update CHANGELOG.md
 - [ ] Test on clean Windows installation
-- [ ] Build and test executable
-- [ ] Build and test installer
-- [ ] Create release notes
-- [ ] Upload to GitHub releases
+- [ ] Build and test executable locally
+- [ ] Create release with proper installer files
+- [ ] Verify release has both `.exe` and `.zip` files (not just source code)
 
 ## Support
 
