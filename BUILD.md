@@ -219,7 +219,13 @@ The Inno Setup script controls the installer creation:
 
 ## Troubleshooting
 
-### Build Issues
+**📖 Подробное руководство по устранению проблем:** См. [TROUBLESHOOTING.md](TROUBLESHOOTING.md)
+
+### Общие проблемы при сборке
+
+**Problem:** "Не удается найти файл LICENSE при build exe"
+- **Решение:** Убедитесь, что вы запускаете `build_exe.py` из корневой директории проекта
+- **Детали:** См. [TROUBLESHOOTING.md](TROUBLESHOOTING.md#ошибка-не-удается-найти-файл-license-при-build-exe)
 
 **Problem:** "PyInstaller not found"
 ```bash
