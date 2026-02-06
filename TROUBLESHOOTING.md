@@ -2,6 +2,75 @@
 
 Решение распространенных проблем при сборке и использовании LLCAR.
 
+## Проблемы при установке (Installation Issues)
+
+### Ошибка: Зависание при установке зависимостей (`pip install -r requirements.txt`)
+
+**Проблема:** При выполнении `pip install -r requirements.txt` процесс зависает на этапе разрешения зависимостей (dependency resolution). Pip выводит сообщения:
+
+```
+INFO: pip is looking at multiple versions of whisperx to determine which version is compatible with other requirements. This could take a while.
+INFO: This is taking longer than usual. You might need to provide the dependency resolver with stricter constraints to reduce runtime.
+```
+
+**Причины:**
+1. Конфликты версий между пакетами Whisper (openai-whisper, faster-whisper, whisperx)
+2. Несовместимые версии зависимостей (ctranslate2, onnxruntime)
+3. Сложная цепочка зависимостей требует обширного перебора вариантов
+
+**Решение:**
+
+📖 **Подробное руководство:** См. [INSTALLATION_GUIDE.md](INSTALLATION_GUIDE.md)
+
+**Быстрое решение:**
+
+1. **Прервите зависший процесс:** Нажмите `Ctrl+C`
+
+2. **Используйте поэтапную установку:**
+
+   ```bash
+   # Шаг 1: Обновите pip
+   python -m pip install --upgrade pip setuptools wheel
+
+   # Шаг 2: Установите PyTorch отдельно
+   # Для Windows с CUDA 12.1:
+   pip install torch==2.5.1+cu121 torchaudio==2.5.1+cu121 --index-url https://download.pytorch.org/whl/cu121
+
+   # Для CPU only:
+   pip install torch==2.5.1 torchaudio==2.5.1 --index-url https://download.pytorch.org/whl/cpu
+
+   # Шаг 3: Установите Whisper модели с фиксированными версиями
+   pip install openai-whisper==20231117
+   pip install faster-whisper==1.0.0
+
+   # Шаг 4: Установите остальные зависимости
+   pip install -r requirements-recommended.txt
+   ```
+
+3. **Или используйте рекомендуемый файл требований:**
+
+   ```bash
+   pip install -r requirements-recommended.txt
+   ```
+
+**Альтернативное решение - без WhisperX:**
+
+Если конфликты продолжаются, пропустите WhisperX (он часто вызывает проблемы):
+
+```bash
+# Установите только необходимые пакеты
+pip install openai-whisper==20231117 faster-whisper==1.0.0
+pip install pyannote.audio nltk spacy scikit-learn
+pip install ffmpeg-python librosa soundfile
+pip install python-dotenv tqdm click colorama rich
+```
+
+**Проверка установки:**
+
+```bash
+python -c "import whisper; import pyannote.audio; import torch; print('OK!')"
+```
+
 ## Проблемы при сборке (Build Issues)
 
 ### Ошибка: "Не удается найти файл LICENSE при build exe"
