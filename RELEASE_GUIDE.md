@@ -1,5 +1,7 @@
 # LLCAR - Release Guide
 
+**Обновлено:** 2026-02-07
+
 This guide explains how to create a proper release with installer files for LLCAR.
 
 ## ⚠️ Important Note

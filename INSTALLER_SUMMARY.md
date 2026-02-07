@@ -1,5 +1,7 @@
 # LLCAR - Windows Installer Implementation Summary
 
+**Обновлено:** 2026-02-07
+
 ## Обзор реализации
 
 Успешно реализована полная система сборки Windows инсталлятора и исполняемого файла для LLCAR Video Processing Pipeline.

@@ -1,5 +1,7 @@
 # LLCAR - Building Windows Installer and Executable
 
+**Обновлено:** 2026-02-07
+
 This document describes how to build a standalone Windows executable and installer for LLCAR.
 
 ## Quick Start

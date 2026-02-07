@@ -1,5 +1,7 @@
 # LLCAR - Quick Build Reference
 
+**Обновлено:** 2026-02-07
+
 ## Prerequisites Checklist
 
 - [ ] Python 3.8+ installed
