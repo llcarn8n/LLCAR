@@ -47,7 +47,7 @@ cd LLCAR
 
 **Подробная документация по загрузке:** [DOWNLOAD.md](DOWNLOAD.md)
 
-**Подробная документация по сборке:** [BUILD.md](BUILD.md) | [BUILD_QUICK_REF.md](BUILD_QUICK_REF.md)
+**Подробная документация по сборке:** [BUILD.md](BUILD.md) | [BUILD_QUICK_REF.md](BUILD_QUICK_REF.md) | [PACKAGE_BUILD_GUIDE.md](PACKAGE_BUILD_GUIDE.md)
 
 ---
 
@@ -164,6 +164,23 @@ python build_exe.py
 ```
 
 Подробная инструкция по сборке: [BUILD.md](BUILD.md)
+
+### Вариант 3: Создание портативного пакета
+
+Для создания портативных пакетов для распространения:
+```bash
+# Сборка пакета для текущей платформы
+python build_package.py
+
+# Или сборка для всех платформ сразу
+python build_package.py --all
+
+# Или через Make
+make package
+make package-all
+```
+
+Подробная инструкция: [PACKAGE_BUILD_GUIDE.md](PACKAGE_BUILD_GUIDE.md)
 
 ### Или через Docker
 
