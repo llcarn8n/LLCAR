@@ -8,45 +8,64 @@ import logging
 from typing import List, Dict, Any, Set
 from sklearn.feature_extraction.text import TfidfVectorizer
 from summa import keywords as summa_keywords
-import nltk
 
 logger = logging.getLogger(__name__)
 
-# Download required NLTK data
-try:
-    nltk.data.find('tokenizers/punkt')
-except LookupError:
-    nltk.download('punkt', quiet=True)
+_nltk_data_ensured = False
 
-try:
-    nltk.data.find('corpora/stopwords')
-except LookupError:
-    nltk.download('stopwords', quiet=True)
+
+def _ensure_nltk_data():
+    """Download required NLTK data once on first use."""
+    global _nltk_data_ensured
+    if _nltk_data_ensured:
+        return
+    import nltk
+    for resource, name in [('tokenizers/punkt', 'punkt'), ('corpora/stopwords', 'stopwords')]:
+        try:
+            nltk.data.find(resource)
+        except LookupError:
+            nltk.download(name, quiet=True)
+    _nltk_data_ensured = True
 
 
 class TextPostProcessor:
     """Post-processes transcribed text."""
 
-    # Russian filler words and profanity patterns
-    RUSSIAN_FILLERS = {
-        'ну', 'вот', 'это', 'как бы', 'типа', 'короче', 'в общем',
-        'то есть', 'значит', 'так сказать', 'в принципе', 'собственно',
+    # Single-word fillers (checked per word)
+    RUSSIAN_SINGLE_FILLERS = {
+        'ну', 'вот', 'это', 'типа', 'короче', 'значит', 'собственно',
         'слушай', 'знаешь', 'понимаешь', 'видишь', 'эээ', 'ммм', 'ааа'
     }
 
-    # English filler words
-    ENGLISH_FILLERS = {
-        'um', 'uh', 'like', 'you know', 'i mean', 'basically', 'actually',
-        'literally', 'sort of', 'kind of', 'well', 'so', 'right', 'okay'
+    ENGLISH_SINGLE_FILLERS = {
+        'um', 'uh', 'basically', 'actually', 'literally', 'well', 'so',
+        'right', 'okay', 'like'
     }
 
-    # Chinese filler words (simplified)
-    CHINESE_FILLERS = {
-        '嗯', '啊', '呃', '那个', '这个', '就是', '然后', '对'
+    CHINESE_SINGLE_FILLERS = {
+        '嗯', '啊', '呃', '对'
     }
 
-    # Profanity placeholder pattern
-    PROFANITY_PATTERN = re.compile(r'\b\w*[бпхё][ляуеёаоыэяию]*[тдцксзжшщчх][ьъ]?\w*\b', re.IGNORECASE)
+    # Multi-word filler phrases (removed via regex substitution)
+    RUSSIAN_PHRASE_FILLERS = [
+        'как бы', 'в общем', 'то есть', 'так сказать', 'в принципе'
+    ]
+
+    ENGLISH_PHRASE_FILLERS = [
+        'you know', 'i mean', 'sort of', 'kind of'
+    ]
+
+    CHINESE_PHRASE_FILLERS = [
+        '那个', '这个', '就是', '然后'
+    ]
+
+    # Curated Russian profanity word stems for censoring
+    RUSSIAN_PROFANITY_STEMS = [
+        'хуй', 'хуе', 'хуя', 'хуё', 'пизд', 'блят', 'бляд', 'блядь',
+        'ебат', 'ёбан', 'ебан', 'ебну', 'ебал', 'ебло', 'ёбан',
+        'сука', 'сучк', 'сучар', 'пидор', 'пидар', 'залуп', 'муда',
+        'мудак', 'мудил', 'дерьм', 'жопа', 'жоп',
+    ]
 
     def __init__(self, language: str = "en", remove_fillers: bool = True, remove_profanity: bool = True):
         """
@@ -57,17 +76,31 @@ class TextPostProcessor:
             remove_fillers: Whether to remove filler words
             remove_profanity: Whether to censor profanity
         """
+        _ensure_nltk_data()
+
         self.language = language
         self.remove_fillers = remove_fillers
         self.remove_profanity = remove_profanity
 
         # Select filler words based on language
         if language == "ru":
-            self.fillers = self.RUSSIAN_FILLERS
+            self.single_fillers = self.RUSSIAN_SINGLE_FILLERS
+            self.phrase_fillers = self.RUSSIAN_PHRASE_FILLERS
         elif language == "zh":
-            self.fillers = self.CHINESE_FILLERS
+            self.single_fillers = self.CHINESE_SINGLE_FILLERS
+            self.phrase_fillers = self.CHINESE_PHRASE_FILLERS
         else:
-            self.fillers = self.ENGLISH_FILLERS
+            self.single_fillers = self.ENGLISH_SINGLE_FILLERS
+            self.phrase_fillers = self.ENGLISH_PHRASE_FILLERS
+
+        # Build profanity pattern from curated word list
+        if language == "ru" and self.RUSSIAN_PROFANITY_STEMS:
+            escaped = [re.escape(stem) for stem in self.RUSSIAN_PROFANITY_STEMS]
+            self._profanity_pattern = re.compile(
+                r'\b\w*(?:' + '|'.join(escaped) + r')\w*\b', re.IGNORECASE
+            )
+        else:
+            self._profanity_pattern = None
 
         logger.info(f"TextPostProcessor initialized for language: {language}")
 
@@ -92,7 +125,7 @@ class TextPostProcessor:
             text = self._remove_fillers(text)
 
         # Censor profanity
-        if self.remove_profanity and self.language == "ru":
+        if self.remove_profanity and self._profanity_pattern:
             text = self._censor_profanity(text)
 
         # Remove duplicate consecutive words
@@ -105,15 +138,20 @@ class TextPostProcessor:
         return text.strip()
 
     def _remove_fillers(self, text: str) -> str:
-        """Remove filler words from text."""
+        """Remove filler words and phrases from text."""
+        # First remove multi-word phrases (longest first to avoid partial matches)
+        for phrase in sorted(self.phrase_fillers, key=len, reverse=True):
+            pattern = re.compile(r'\b' + re.escape(phrase) + r'\b', re.IGNORECASE)
+            text = pattern.sub('', text)
+
+        # Then remove single-word fillers
         words = text.split()
-        cleaned_words = [w for w in words if w.lower() not in self.fillers]
+        cleaned_words = [w for w in words if w.lower() not in self.single_fillers]
         return ' '.join(cleaned_words)
 
     def _censor_profanity(self, text: str) -> str:
-        """Censor profanity in Russian text."""
-        # Simple pattern-based censoring (can be improved with dedicated libraries)
-        return self.PROFANITY_PATTERN.sub('***', text)
+        """Censor profanity using curated word list."""
+        return self._profanity_pattern.sub('***', text)
 
     def _remove_duplicates(self, text: str) -> str:
         """Remove consecutive duplicate words."""
@@ -171,7 +209,7 @@ class KeywordExtractor:
         Extract keywords using TF-IDF.
 
         Args:
-            texts: List of text documents
+            texts: List of text documents (each segment as a separate document)
             top_n: Number of top keywords to extract
             max_features: Maximum number of features for TF-IDF
 
@@ -181,6 +219,11 @@ class KeywordExtractor:
         if not texts or all(not t.strip() for t in texts):
             return []
 
+        # Filter out empty texts
+        docs = [t for t in texts if t.strip()]
+        if not docs:
+            return []
+
         try:
             vectorizer = TfidfVectorizer(
                 max_features=max_features,
@@ -188,17 +231,16 @@ class KeywordExtractor:
                 ngram_range=(1, 2)
             )
 
-            # Combine texts for TF-IDF
-            combined_text = ' '.join(texts)
-            tfidf_matrix = vectorizer.fit_transform([combined_text])
+            # Each segment is a separate document for proper IDF calculation
+            tfidf_matrix = vectorizer.fit_transform(docs)
 
-            # Get feature names and scores
+            # Average TF-IDF scores across all documents
             feature_names = vectorizer.get_feature_names_out()
-            scores = tfidf_matrix.toarray()[0]
+            avg_scores = tfidf_matrix.mean(axis=0).A1
 
             # Sort by score
             keyword_scores = sorted(
-                zip(feature_names, scores),
+                zip(feature_names, avg_scores),
                 key=lambda x: x[1],
                 reverse=True
             )

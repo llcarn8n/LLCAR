@@ -84,12 +84,13 @@ class OutputFormatter:
             return str(output_path)
 
         try:
-            # Get all unique keys from segments
-            fieldnames = set()
+            # Use a logical column order: time, speaker, then text fields
+            preferred_order = ["start", "end", "speaker", "text", "original_text"]
+            all_keys = set()
             for segment in segments:
-                fieldnames.update(segment.keys())
-
-            fieldnames = sorted(list(fieldnames))
+                all_keys.update(segment.keys())
+            fieldnames = [k for k in preferred_order if k in all_keys]
+            fieldnames += sorted(all_keys - set(fieldnames))
 
             with open(output_path, 'w', encoding='utf-8', newline='') as f:
                 writer = csv.DictWriter(f, fieldnames=fieldnames)
@@ -207,9 +208,10 @@ class OutputFormatter:
 
         # Calculate statistics
         if segments:
-            # Total duration
-            if "end" in segments[-1]:
-                report["statistics"]["total_duration"] = segments[-1]["end"]
+            # Total duration — use max end time across all segments
+            ends = [s["end"] for s in segments if "end" in s]
+            if ends:
+                report["statistics"]["total_duration"] = max(ends)
 
             # Total words
             for segment in segments:

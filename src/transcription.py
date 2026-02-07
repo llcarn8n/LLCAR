@@ -95,8 +95,8 @@ class Transcriber:
                 )
                 self.model = whisper.load_model("large-v3", device=self.device)
             elif self.model_name.startswith("openai/whisper"):
-                # Use standard Whisper
-                model_size = self.model_name.split("-")[-1]
+                # Use standard Whisper — extract size like "large-v3" from "openai/whisper-large-v3"
+                model_size = self.model_name.split("openai/whisper-", 1)[-1]
                 self.model = whisper.load_model(model_size, device=self.device)
             else:
                 # Use HuggingFace transformers
@@ -194,9 +194,10 @@ class Transcriber:
 
         if "chunks" in result:
             for chunk in result["chunks"]:
+                ts = chunk.get("timestamp")
                 segment_data = {
-                    "start": chunk["timestamp"][0] if chunk["timestamp"][0] else 0.0,
-                    "end": chunk["timestamp"][1] if chunk["timestamp"][1] else 0.0,
+                    "start": ts[0] if ts and ts[0] is not None else 0.0,
+                    "end": ts[1] if ts and ts[1] is not None else 0.0,
                     "text": chunk["text"].strip(),
                     "speaker": None
                 }

@@ -11,9 +11,9 @@ from pathlib import Path
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent))
 
-from main import main
-
 if __name__ == "__main__":
-    # Force interactive mode
-    sys.argv.append("--interactive")
+    # Force interactive mode without mutating the global sys.argv
+    if "--interactive" not in sys.argv:
+        sys.argv.append("--interactive")
+    from main import main
     sys.exit(main())

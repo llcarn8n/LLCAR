@@ -5,6 +5,7 @@ Identifies and separates speakers in audio using pyannote.audio.
 
 import os
 import logging
+from collections import defaultdict
 from pathlib import Path
 from typing import List, Dict, Any, Optional
 import torch
@@ -115,13 +116,7 @@ class SpeakerDiarizer:
         Returns:
             Dictionary with speaker labels as keys and total speaking time as values
         """
-        stats = {}
+        stats = defaultdict(float)
         for segment in segments:
-            speaker = segment["speaker"]
-            duration = segment["end"] - segment["start"]
-
-            if speaker not in stats:
-                stats[speaker] = 0.0
-            stats[speaker] += duration
-
-        return stats
+            stats[segment["speaker"]] += segment["end"] - segment["start"]
+        return dict(stats)
