@@ -5,6 +5,9 @@
 Comprehensive code review of the LLCAR project — a video/audio processing pipeline
 with speaker diarization, transcription, and keyword extraction.
 
+**Note:** This is a historical code review document created during initial development.
+Issues listed below may or may not still be present in the current codebase.
+
 Overall the project has a clean modular architecture and is well-structured.
 Below are the issues found, grouped by severity.
 
