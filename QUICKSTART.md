@@ -1,5 +1,7 @@
 # LLCAR Quick Start Guide
 
+**Обновлено:** 2026-02-07
+
 Быстрый старт для LLCAR Video Processing Pipeline
 
 ## Установка за 3 шага
