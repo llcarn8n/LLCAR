@@ -5,6 +5,7 @@ Provides a user-friendly menu-driven interface for processing video and audio fi
 """
 
 import os
+import subprocess
 import sys
 import logging
 from pathlib import Path
@@ -41,8 +42,8 @@ class InteractiveConsole:
         self.running = True
 
     def clear_screen(self):
-        """Clear the console screen."""
-        os.system('cls' if os.name == 'nt' else 'clear')
+        """Clear the console screen using ANSI escape codes."""
+        print("\033[2J\033[H", end="", flush=True)
 
     def print_header(self):
         """Print the application header."""
@@ -150,54 +151,134 @@ class InteractiveConsole:
 
         return None
 
-    def process_single_video(self):
-        """Process a single video file."""
+    def _ensure_pipeline(self, language: str) -> bool:
+        """
+        Ensure the pipeline is initialized. Creates it if needed.
+
+        Args:
+            language: Language code for the pipeline
+
+        Returns:
+            True if pipeline is ready, False on error
+        """
+        if self.pipeline:
+            return True
+
+        from .pipeline import VideoPipeline
+        hf_token = self.config.get('hf_token') or os.getenv('HF_TOKEN')
+        if not hf_token:
+            print("\n❌ Error: HuggingFace token not configured!")
+            print("Please set HF_TOKEN environment variable or configure in settings.")
+            input("\nPress Enter to continue...")
+            return False
+
+        print("\n⏳ Initializing pipeline...")
+        try:
+            self.pipeline = VideoPipeline(
+                language=language,
+                model_variant=self.config.get('model_variant', 'default'),
+                hf_token=hf_token,
+                device=self.config.get('device', 'auto'),
+                output_dir=self.config.get('output', {}).get('directory', './output')
+            )
+            return True
+        except Exception as e:
+            print(f"\n❌ Error initializing pipeline: {e}")
+            input("\nPress Enter to continue...")
+            return False
+
+    def _get_processing_options(self):
+        """
+        Collect common processing options from user.
+
+        Returns:
+            Tuple of (language, num_speakers, extract_keywords, keyword_method,
+                      top_keywords, save_formats)
+        """
+        print("\n⚙️  Processing Options:")
+
+        language = self.get_input("Language (en/ru/zh)",
+                                  self.config.get('language', 'en'))
+
+        num_speakers_str = self.get_input("Number of speakers (leave empty for auto-detection)", "")
+        num_speakers = int(num_speakers_str) if num_speakers_str and num_speakers_str.isdigit() else None
+
+        extract_keywords = self.get_yes_no("Extract keywords?", True)
+
+        keyword_method = "tfidf"
+        top_keywords = 10
+        if extract_keywords:
+            keyword_method = self.get_input("Keyword method (tfidf/textrank)", "tfidf")
+            top_keywords_str = self.get_input("Number of top keywords", "10")
+            top_keywords = int(top_keywords_str) if top_keywords_str.isdigit() else 10
+
+        print("\nOutput formats: json, txt, csv")
+        formats_input = self.get_input("Select formats (comma-separated)", "json,txt")
+        save_formats = [f.strip() for f in formats_input.split(',')]
+
+        return language, num_speakers, extract_keywords, keyword_method, top_keywords, save_formats
+
+    def _print_processing_summary(self, file_path, language, num_speakers,
+                                  extract_keywords, keyword_method, top_keywords,
+                                  save_formats):
+        """Print a summary of the processing options before starting."""
         print("\n" + "─" * 70)
-        print("📹 Process Single Video File")
+        print("📋 Processing Summary:")
+        print(f"  File: {file_path}")
+        print(f"  Language: {language}")
+        print(f"  Speakers: {num_speakers or 'auto-detect'}")
+        print(f"  Keywords: {extract_keywords}")
+        if extract_keywords:
+            print(f"  Keyword method: {keyword_method}")
+            print(f"  Top keywords: {top_keywords}")
+        print(f"  Output formats: {', '.join(save_formats)}")
+        print("─" * 70)
+
+    def _print_results(self, results, extract_keywords):
+        """Print processing results."""
+        print("\n" + "=" * 70)
+        print("✅ PROCESSING COMPLETED SUCCESSFULLY")
+        print("=" * 70)
+        print(f"⏱️  Total time: {results['total_processing_time']:.2f} seconds")
+        print(f"📝 Segments: {results['steps'].get('transcription', {}).get('num_segments', 0)}")
+        print(f"👥 Speakers: {results['steps'].get('diarization', {}).get('num_speakers', 0)}")
+
+        if extract_keywords:
+            print(f"🔑 Keywords: {len(results.get('keywords', []))}")
+
+        print("\n📄 Output files:")
+        for format_type, file_path in results.get('output_files', {}).items():
+            print(f"  • {format_type.upper()}: {file_path}")
+
+        print("=" * 70)
+
+    def _process_single_file(self, file_type: str):
+        """
+        Process a single video or audio file.
+
+        Args:
+            file_type: 'video' or 'audio'
+        """
+        label = "📹 Process Single Video File" if file_type == "video" else "🎵 Process Single Audio File"
+        print("\n" + "─" * 70)
+        print(label)
         print("─" * 70)
 
         # Get file path
-        video_path = self.browse_files("video")
-        if not video_path:
+        file_path = self.browse_files(file_type)
+        if not file_path:
             print("❌ No file selected. Returning to main menu.")
             input("\nPress Enter to continue...")
             return
 
         # Get processing options
-        print("\n⚙️  Processing Options:")
+        language, num_speakers, extract_keywords, keyword_method, top_keywords, save_formats = \
+            self._get_processing_options()
 
-        language = self.get_input("Language (en/ru/zh)",
-                                 self.config.get('language', 'en'))
-
-        num_speakers_str = self.get_input("Number of speakers (leave empty for auto-detection)", "")
-        num_speakers = int(num_speakers_str) if num_speakers_str.isdigit() else None
-
-        extract_keywords = self.get_yes_no("Extract keywords?", True)
-
-        keyword_method = None
-        top_keywords = 10
-        if extract_keywords:
-            keyword_method = self.get_input("Keyword method (tfidf/textrank)", "tfidf")
-            top_keywords_str = self.get_input("Number of top keywords", "10")
-            top_keywords = int(top_keywords_str) if top_keywords_str.isdigit() else 10
-
-        # Output formats
-        print("\nOutput formats: json, txt, csv")
-        formats_input = self.get_input("Select formats (comma-separated)", "json,txt")
-        save_formats = [f.strip() for f in formats_input.split(',')]
-
-        # Confirm and process
-        print("\n" + "─" * 70)
-        print("📋 Processing Summary:")
-        print(f"  File: {video_path}")
-        print(f"  Language: {language}")
-        print(f"  Speakers: {num_speakers or 'auto-detect'}")
-        print(f"  Keywords: {extract_keywords}")
-        if extract_keywords:
-            print(f"  Keyword method: {keyword_method}")
-            print(f"  Top keywords: {top_keywords}")
-        print(f"  Output formats: {', '.join(save_formats)}")
-        print("─" * 70)
+        # Confirm
+        self._print_processing_summary(file_path, language, num_speakers,
+                                       extract_keywords, keyword_method,
+                                       top_keywords, save_formats)
 
         if not self.get_yes_no("\nProceed with processing?", True):
             print("❌ Processing cancelled.")
@@ -205,65 +286,39 @@ class InteractiveConsole:
             return
 
         # Initialize pipeline if needed
-        if not self.pipeline:
-            from .pipeline import VideoPipeline
-            hf_token = self.config.get('hf_token') or os.getenv('HF_TOKEN')
-            if not hf_token:
-                print("\n❌ Error: HuggingFace token not configured!")
-                print("Please set HF_TOKEN environment variable or configure in settings.")
-                input("\nPress Enter to continue...")
-                return
+        if not self._ensure_pipeline(language):
+            return
 
-            print("\n⏳ Initializing pipeline...")
-            try:
-                self.pipeline = VideoPipeline(
-                    language=language,
-                    model_variant=self.config.get('model_variant', 'default'),
-                    hf_token=hf_token,
-                    device=self.config.get('device', 'auto'),
-                    output_dir=self.config.get('output', {}).get('directory', './output')
-                )
-            except Exception as e:
-                print(f"\n❌ Error initializing pipeline: {e}")
-                input("\nPress Enter to continue...")
-                return
-
-        # Process video
-        print("\n🚀 Starting video processing...")
+        # Process file
+        print(f"\n🚀 Starting {file_type} processing...")
         print("This may take a while depending on file size and hardware.\n")
 
         try:
-            results = self.pipeline.process_video(
-                video_path=video_path,
-                num_speakers=num_speakers,
-                extract_keywords=extract_keywords,
-                keyword_method=keyword_method,
-                top_keywords=top_keywords,
-                save_formats=save_formats
-            )
+            if file_type == "video":
+                results = self.pipeline.process_video(
+                    video_path=file_path,
+                    num_speakers=num_speakers,
+                    extract_keywords=extract_keywords,
+                    keyword_method=keyword_method,
+                    top_keywords=top_keywords,
+                    save_formats=save_formats
+                )
+            else:
+                results = self.pipeline.process_audio(
+                    audio_path=file_path,
+                    num_speakers=num_speakers,
+                    extract_keywords=extract_keywords,
+                    keyword_method=keyword_method,
+                    top_keywords=top_keywords,
+                    save_formats=save_formats
+                )
 
-            # Show results
-            print("\n" + "=" * 70)
-            print("✅ PROCESSING COMPLETED SUCCESSFULLY")
-            print("=" * 70)
-            print(f"⏱️  Total time: {results['total_processing_time']:.2f} seconds")
-            print(f"📝 Segments: {results['steps'].get('transcription', {}).get('num_segments', 0)}")
-            print(f"👥 Speakers: {results['steps'].get('diarization', {}).get('num_speakers', 0)}")
+            self._print_results(results, extract_keywords)
 
-            if extract_keywords:
-                print(f"🔑 Keywords: {len(results.get('keywords', []))}")
-
-            print("\n📄 Output files:")
-            for format_type, file_path in results.get('output_files', {}).items():
-                print(f"  • {format_type.upper()}: {file_path}")
-
-            print("=" * 70)
-
-            # Add to history
             self.history.append({
                 'timestamp': datetime.now().isoformat(),
-                'type': 'video',
-                'file': video_path,
+                'type': file_type,
+                'file': file_path,
                 'language': language,
                 'status': 'completed',
                 'processing_time': results['total_processing_time'],
@@ -277,155 +332,24 @@ class InteractiveConsole:
             print(f"Error: {e}")
             print("=" * 70)
 
-            # Add to history
             self.history.append({
                 'timestamp': datetime.now().isoformat(),
-                'type': 'video',
-                'file': video_path,
+                'type': file_type,
+                'file': file_path,
                 'language': language,
                 'status': 'failed',
                 'error': str(e)
             })
 
         input("\nPress Enter to continue...")
+
+    def process_single_video(self):
+        """Process a single video file."""
+        self._process_single_file("video")
 
     def process_single_audio(self):
         """Process a single audio file."""
-        print("\n" + "─" * 70)
-        print("🎵 Process Single Audio File")
-        print("─" * 70)
-
-        # Get file path
-        audio_path = self.browse_files("audio")
-        if not audio_path:
-            print("❌ No file selected. Returning to main menu.")
-            input("\nPress Enter to continue...")
-            return
-
-        # Similar processing flow as video
-        print("\n⚙️  Processing Options:")
-
-        language = self.get_input("Language (en/ru/zh)",
-                                 self.config.get('language', 'en'))
-
-        num_speakers_str = self.get_input("Number of speakers (leave empty for auto-detection)", "")
-        num_speakers = int(num_speakers_str) if num_speakers_str.isdigit() else None
-
-        extract_keywords = self.get_yes_no("Extract keywords?", True)
-
-        keyword_method = None
-        top_keywords = 10
-        if extract_keywords:
-            keyword_method = self.get_input("Keyword method (tfidf/textrank)", "tfidf")
-            top_keywords_str = self.get_input("Number of top keywords", "10")
-            top_keywords = int(top_keywords_str) if top_keywords_str.isdigit() else 10
-
-        print("\nOutput formats: json, txt, csv")
-        formats_input = self.get_input("Select formats (comma-separated)", "json,txt")
-        save_formats = [f.strip() for f in formats_input.split(',')]
-
-        # Confirm and process
-        print("\n" + "─" * 70)
-        print("📋 Processing Summary:")
-        print(f"  File: {audio_path}")
-        print(f"  Language: {language}")
-        print(f"  Speakers: {num_speakers or 'auto-detect'}")
-        print(f"  Keywords: {extract_keywords}")
-        if extract_keywords:
-            print(f"  Keyword method: {keyword_method}")
-            print(f"  Top keywords: {top_keywords}")
-        print(f"  Output formats: {', '.join(save_formats)}")
-        print("─" * 70)
-
-        if not self.get_yes_no("\nProceed with processing?", True):
-            print("❌ Processing cancelled.")
-            input("\nPress Enter to continue...")
-            return
-
-        # Initialize pipeline if needed
-        if not self.pipeline:
-            from .pipeline import VideoPipeline
-            hf_token = self.config.get('hf_token') or os.getenv('HF_TOKEN')
-            if not hf_token:
-                print("\n❌ Error: HuggingFace token not configured!")
-                print("Please set HF_TOKEN environment variable or configure in settings.")
-                input("\nPress Enter to continue...")
-                return
-
-            print("\n⏳ Initializing pipeline...")
-            try:
-                self.pipeline = VideoPipeline(
-                    language=language,
-                    model_variant=self.config.get('model_variant', 'default'),
-                    hf_token=hf_token,
-                    device=self.config.get('device', 'auto'),
-                    output_dir=self.config.get('output', {}).get('directory', './output')
-                )
-            except Exception as e:
-                print(f"\n❌ Error initializing pipeline: {e}")
-                input("\nPress Enter to continue...")
-                return
-
-        # Process audio
-        print("\n🚀 Starting audio processing...")
-        print("This may take a while depending on file size and hardware.\n")
-
-        try:
-            results = self.pipeline.process_audio(
-                audio_path=audio_path,
-                num_speakers=num_speakers,
-                extract_keywords=extract_keywords,
-                keyword_method=keyword_method,
-                top_keywords=top_keywords,
-                save_formats=save_formats
-            )
-
-            # Show results
-            print("\n" + "=" * 70)
-            print("✅ PROCESSING COMPLETED SUCCESSFULLY")
-            print("=" * 70)
-            print(f"⏱️  Total time: {results['total_processing_time']:.2f} seconds")
-            print(f"📝 Segments: {results['steps'].get('transcription', {}).get('num_segments', 0)}")
-            print(f"👥 Speakers: {results['steps'].get('diarization', {}).get('num_speakers', 0)}")
-
-            if extract_keywords:
-                print(f"🔑 Keywords: {len(results.get('keywords', []))}")
-
-            print("\n📄 Output files:")
-            for format_type, file_path in results.get('output_files', {}).items():
-                print(f"  • {format_type.upper()}: {file_path}")
-
-            print("=" * 70)
-
-            # Add to history
-            self.history.append({
-                'timestamp': datetime.now().isoformat(),
-                'type': 'audio',
-                'file': audio_path,
-                'language': language,
-                'status': 'completed',
-                'processing_time': results['total_processing_time'],
-                'output_files': results.get('output_files', {})
-            })
-
-        except Exception as e:
-            print("\n" + "=" * 70)
-            print("❌ PROCESSING FAILED")
-            print("=" * 70)
-            print(f"Error: {e}")
-            print("=" * 70)
-
-            # Add to history
-            self.history.append({
-                'timestamp': datetime.now().isoformat(),
-                'type': 'audio',
-                'file': audio_path,
-                'language': language,
-                'status': 'failed',
-                'error': str(e)
-            })
-
-        input("\nPress Enter to continue...")
+        self._process_single_file("audio")
 
     def batch_process(self):
         """Batch process multiple files."""
@@ -471,7 +395,7 @@ class InteractiveConsole:
         # Get common settings
         print("\n⚙️  Common Processing Settings:")
         language = self.get_input("Language (en/ru/zh)",
-                                 self.config.get('language', 'en'))
+                                  self.config.get('language', 'en'))
         extract_keywords = self.get_yes_no("Extract keywords?", True)
 
         keyword_method = "tfidf"
@@ -480,6 +404,10 @@ class InteractiveConsole:
 
         formats_input = self.get_input("Output formats (comma-separated)", "json,txt")
         save_formats = [f.strip() for f in formats_input.split(',')]
+
+        # Initialize pipeline if needed
+        if not self._ensure_pipeline(language):
+            return
 
         # Process files
         print(f"\n🚀 Starting batch processing of {len(all_files)} files...")
@@ -490,28 +418,9 @@ class InteractiveConsole:
         for idx, file_path in enumerate(all_files, 1):
             print(f"\n[{idx}/{len(all_files)}] Processing: {file_path.name}")
 
+            is_video = file_path.suffix.lower() in video_extensions
+
             try:
-                # Determine if video or audio
-                is_video = file_path.suffix.lower() in video_extensions
-
-                # Initialize pipeline if needed
-                if not self.pipeline:
-                    from .pipeline import VideoPipeline
-                    hf_token = self.config.get('hf_token') or os.getenv('HF_TOKEN')
-                    if not hf_token:
-                        print("❌ Error: HuggingFace token not configured!")
-                        failed += 1
-                        continue
-
-                    self.pipeline = VideoPipeline(
-                        language=language,
-                        model_variant=self.config.get('model_variant', 'default'),
-                        hf_token=hf_token,
-                        device=self.config.get('device', 'auto'),
-                        output_dir=self.config.get('output', {}).get('directory', './output')
-                    )
-
-                # Process file
                 if is_video:
                     results = self.pipeline.process_video(
                         video_path=str(file_path),
@@ -530,7 +439,6 @@ class InteractiveConsole:
                 print(f"✅ Completed in {results['total_processing_time']:.2f}s")
                 successful += 1
 
-                # Add to history
                 self.history.append({
                     'timestamp': datetime.now().isoformat(),
                     'type': 'video' if is_video else 'audio',

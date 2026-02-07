@@ -3,8 +3,15 @@
 Setup script for LLCAR Video Processing Pipeline
 """
 
+import re
 from setuptools import setup, find_packages
 from pathlib import Path
+
+# Read version from src/__init__.py to keep it in one place
+_version_file = Path(__file__).parent / "src" / "__init__.py"
+_version_match = re.search(r'^__version__\s*=\s*["\']([^"\']+)["\']',
+                           _version_file.read_text(), re.MULTILINE)
+_version = _version_match.group(1) if _version_match else "0.0.0"
 
 # Read README
 readme_file = Path(__file__).parent / "README.md"
@@ -12,7 +19,7 @@ long_description = readme_file.read_text(encoding="utf-8") if readme_file.exists
 
 setup(
     name="llcar",
-    version="1.0.0",
+    version=_version,
     description="Video processing pipeline with speaker diarization and multi-language transcription",
     long_description=long_description,
     long_description_content_type="text/markdown",

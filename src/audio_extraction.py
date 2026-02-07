@@ -5,6 +5,7 @@ Extracts audio from video files using ffmpeg.
 
 import os
 import logging
+import tempfile
 from pathlib import Path
 import ffmpeg
 
@@ -41,9 +42,12 @@ class AudioExtractor:
         if not video_path.exists():
             raise FileNotFoundError(f"Video file not found: {video_path}")
 
-        # Generate output path if not provided
+        # Generate output path if not provided — use temp directory to avoid
+        # writing next to the source file (which may be on a read-only filesystem)
         if output_path is None:
-            output_path = video_path.with_suffix('.wav')
+            tmp_dir = Path(tempfile.gettempdir()) / "llcar"
+            tmp_dir.mkdir(parents=True, exist_ok=True)
+            output_path = tmp_dir / (video_path.stem + '.wav')
         else:
             output_path = Path(output_path)
 
