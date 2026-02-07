@@ -7,7 +7,6 @@ Run: pyinstaller llcar.spec
 """
 
 import os
-import sys
 from PyInstaller.utils.hooks import collect_data_files, collect_submodules
 
 block_cipher = None
@@ -21,9 +20,10 @@ datas = [
     (os.path.join(PROJECT_ROOT, '.env.example'), '.'),
     (os.path.join(PROJECT_ROOT, 'README.md'), '.'),
     (os.path.join(PROJECT_ROOT, 'LICENSE'), '.'),
+    (os.path.join(PROJECT_ROOT, 'gui.py'), '.'),
 ]
 
-# Collect hidden imports
+# Collect hidden imports — main app modules
 hiddenimports = [
     'src',
     'src.pipeline',
@@ -33,6 +33,7 @@ hiddenimports = [
     'src.postprocessing',
     'src.output',
     'src.console',
+    # ML / torch
     'torch',
     'torchaudio',
     'whisper',
@@ -41,6 +42,7 @@ hiddenimports = [
     'pyannote.database',
     'transformers',
     'accelerate',
+    # NLP / sklearn
     'sklearn',
     'sklearn.feature_extraction',
     'sklearn.feature_extraction.text',
@@ -50,6 +52,7 @@ hiddenimports = [
     'summa',
     'summa.keywords',
     'gensim',
+    # Misc
     'regex',
     'yaml',
     'dotenv',
@@ -57,6 +60,12 @@ hiddenimports = [
     'colorlog',
     'pandas',
     'ffmpeg',
+    # GUI (Tkinter is usually bundled, but be explicit)
+    'tkinter',
+    'tkinter.ttk',
+    'tkinter.filedialog',
+    'tkinter.messagebox',
+    'tkinter.scrolledtext',
 ]
 
 # Collect all submodules from key packages

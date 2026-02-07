@@ -1,6 +1,6 @@
 #!/bin/bash
 # LLCAR GUI Launcher
-# Quick launcher for the graphical user interface
+# Launches the graphical user interface
 
 cd "$(dirname "$0")"
-python3 gui.py
+python3 main.py --gui

@@ -5,15 +5,25 @@ Provides a user-friendly menu-driven interface for processing video and audio fi
 """
 
 import os
-import subprocess
 import sys
 import logging
+import platform
 from pathlib import Path
 from typing import Optional, List, Dict, Any
 from datetime import datetime
 import json
 
 logger = logging.getLogger(__name__)
+
+# ANSI color codes (supported on Windows 10+ and all modern terminals)
+_BOLD = "\033[1m"
+_DIM = "\033[2m"
+_GREEN = "\033[92m"
+_YELLOW = "\033[93m"
+_RED = "\033[91m"
+_CYAN = "\033[96m"
+_BLUE = "\033[94m"
+_RESET = "\033[0m"
 
 
 class InteractiveConsole:
@@ -46,24 +56,53 @@ class InteractiveConsole:
         print("\033[2J\033[H", end="", flush=True)
 
     def print_header(self):
-        """Print the application header."""
-        print("\n" + "=" * 70)
-        print(" LLCAR - Video & Audio Processing Pipeline")
-        print(" Interactive Console Mode")
-        print("=" * 70)
+        """Print the application header with system info."""
+        print()
+        print(f"{_BOLD}{_CYAN}" + "=" * 70 + _RESET)
+        print(f"{_BOLD}{_CYAN}"
+              "    __    __   ______   ___    ____\n"
+              "   / /   / /  / ____/  /   |  / __ \\\n"
+              "  / /   / /  / /      / /| | / /_/ /\n"
+              " / /___/ /_ / /___   / ___ |/ _, _/\n"
+              "/_____/____/\\____/  /_/  |_/_/ |_|"
+              f"{_RESET}")
+        print(f"{_DIM}  Video & Audio Processing Pipeline v1.0.0{_RESET}")
+        print(f"{_CYAN}" + "=" * 70 + _RESET)
+
+        # System info line
+        has_token = bool(self.config.get('hf_token') or os.getenv('HF_TOKEN'))
+        token_status = f"{_GREEN}OK{_RESET}" if has_token else f"{_RED}not set{_RESET}"
+        device = self.config.get('device', 'auto')
+        lang = self.config.get('language', 'en')
+        print(f"  {_DIM}OS:{_RESET} {platform.system()} {platform.machine()}"
+              f"  {_DIM}Lang:{_RESET} {lang}"
+              f"  {_DIM}Device:{_RESET} {device}"
+              f"  {_DIM}HF Token:{_RESET} {token_status}")
 
     def print_menu(self):
         """Print main menu."""
-        print("\n┌─ Main Menu ─────────────────────────────────────────────────────┐")
-        print("│ 1. Process single video file                                    │")
-        print("│ 2. Process single audio file                                    │")
-        print("│ 3. Batch process multiple files                                 │")
-        print("│ 4. View processing history                                      │")
-        print("│ 5. Configure settings                                           │")
-        print("│ 6. Show current configuration                                   │")
-        print("│ 7. Help & Documentation                                         │")
-        print("│ 8. Exit                                                          │")
-        print("└──────────────────────────────────────────────────────────────────┘")
+        W = 66  # inner width
+        print()
+        print(f"  {_BOLD}┌─ Main Menu ─" + "─" * (W - 14) + f"┐{_RESET}")
+        items = [
+            ("1", "Process single video file",  ""),
+            ("2", "Process single audio file",   ""),
+            ("3", "Batch process multiple files", ""),
+            ("4", "Quick process (drag & drop)",  f"{_GREEN}NEW{_RESET}"),
+            ("5", "View processing history",      ""),
+            ("6", "Configure settings",           ""),
+            ("7", "Show current configuration",   ""),
+            ("8", "Help & Documentation",         ""),
+            ("0", "Exit",                         ""),
+        ]
+        for num, label, badge in items:
+            badge_text = f" [{badge}]" if badge else ""
+            # Calculate visible length (without ANSI codes)
+            visible_len = len(f"  {num}. {label}") + (len(badge_text) - (len(badge) - len(badge.replace('\033', ''))) if badge else 0)
+            # Just pad with spaces to roughly align
+            line = f"  {_BOLD}{num}.{_RESET} {label}{badge_text}"
+            print(f"  │{line:<{W + 20}}│")
+        print(f"  {_BOLD}└" + "─" * W + f"┘{_RESET}")
 
     def get_input(self, prompt: str, default: str = None) -> str:
         """
@@ -616,6 +655,79 @@ class InteractiveConsole:
 
         input("\nPress Enter to continue...")
 
+    def quick_process(self):
+        """Quick process — enter a file path and go with sensible defaults."""
+        print(f"\n{_BOLD}Quick Process{_RESET}")
+        print("Enter the path to a video or audio file (or drag & drop it here).\n")
+
+        path_input = self.get_input("File path")
+        if not path_input:
+            print(f"{_RED}No path provided.{_RESET}")
+            input("\nPress Enter to continue...")
+            return
+
+        # Strip quotes that Windows adds when drag-and-dropping
+        path_input = path_input.strip('"').strip("'")
+        file_path = Path(path_input)
+
+        if not file_path.exists():
+            print(f"{_RED}File not found: {file_path}{_RESET}")
+            input("\nPress Enter to continue...")
+            return
+
+        video_exts = {'.mp4', '.avi', '.mkv', '.mov', '.webm'}
+        audio_exts = {'.wav', '.mp3', '.flac', '.ogg', '.m4a'}
+        ext = file_path.suffix.lower()
+
+        if ext in video_exts:
+            file_type = "video"
+        elif ext in audio_exts:
+            file_type = "audio"
+        else:
+            print(f"{_YELLOW}Unknown extension '{ext}'. Trying as video...{_RESET}")
+            file_type = "video"
+
+        language = self.config.get('language', 'en')
+        print(f"\n  File:     {file_path.name} ({file_path.stat().st_size / 1048576:.1f} MB)")
+        print(f"  Type:     {file_type}")
+        print(f"  Language: {language}")
+        print(f"  Output:   json, txt\n")
+
+        if not self.get_yes_no("Start processing?", True):
+            return
+
+        if not self._ensure_pipeline(language):
+            return
+
+        print(f"\n{_CYAN}Processing...{_RESET}\n")
+
+        try:
+            if file_type == "video":
+                results = self.pipeline.process_video(
+                    video_path=str(file_path),
+                    save_formats=["json", "txt"]
+                )
+            else:
+                results = self.pipeline.process_audio(
+                    audio_path=str(file_path),
+                    save_formats=["json", "txt"]
+                )
+            self._print_results(results, extract_keywords=True)
+
+            self.history.append({
+                'timestamp': datetime.now().isoformat(),
+                'type': file_type,
+                'file': str(file_path),
+                'language': language,
+                'status': 'completed',
+                'processing_time': results['total_processing_time'],
+                'output_files': results.get('output_files', {})
+            })
+        except Exception as e:
+            print(f"\n{_RED}Processing failed: {e}{_RESET}")
+
+        input("\nPress Enter to continue...")
+
     def show_help(self):
         """Display help and documentation."""
         print("\n" + "─" * 70)
@@ -658,12 +770,16 @@ class InteractiveConsole:
 
     def run(self):
         """Run the interactive console."""
+        # Enable ANSI colors on Windows 10+
+        if sys.platform == 'win32':
+            os.system('')  # triggers VT100 processing
+
         while self.running:
             self.clear_screen()
             self.print_header()
             self.print_menu()
 
-            choice = self.get_input("\nSelect an option (1-8)", "1")
+            choice = self.get_input(f"\n  {_BOLD}>{_RESET} Select option", "1")
 
             if choice == "1":
                 self.process_single_video()
@@ -672,19 +788,20 @@ class InteractiveConsole:
             elif choice == "3":
                 self.batch_process()
             elif choice == "4":
-                self.view_history()
+                self.quick_process()
             elif choice == "5":
-                self.configure_settings()
+                self.view_history()
             elif choice == "6":
-                self.show_configuration()
+                self.configure_settings()
             elif choice == "7":
-                self.show_help()
+                self.show_configuration()
             elif choice == "8":
-                print("\n👋 Thank you for using LLCAR!")
-                print("Goodbye!\n")
+                self.show_help()
+            elif choice in ("0", "q", "exit", "quit"):
+                print(f"\n{_CYAN}Thank you for using LLCAR! Goodbye.{_RESET}\n")
                 self.running = False
             else:
-                print(f"\n❌ Invalid option: {choice}")
+                print(f"\n{_RED}Invalid option: {choice}{_RESET}")
                 input("\nPress Enter to continue...")
 
         return 0

@@ -1,7 +1,12 @@
 @echo off
 REM LLCAR GUI Launcher for Windows
-REM Quick launcher for the graphical user interface
+REM Launches the graphical user interface
 
 cd /d "%~dp0"
-python gui.py
-pause
+
+REM Try the unified entry point first (works with both Python and EXE)
+if exist "llcar.exe" (
+    start "" llcar.exe --gui
+) else (
+    python main.py --gui
+)

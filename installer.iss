@@ -39,8 +39,8 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 Name: "russian"; MessagesFile: "compiler:Languages\Russian.isl"
 
 [Tasks]
-Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"
-Name: "quicklaunchicon"; Description: "{cm:CreateQuickLaunchIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
+Name: "desktopicon"; Description: "{cm:CreateDesktopIcon} (Console)"; GroupDescription: "{cm:AdditionalIcons}"
+Name: "desktopicon_gui"; Description: "{cm:CreateDesktopIcon} (GUI)"; GroupDescription: "{cm:AdditionalIcons}"
 
 [Files]
 ; Main executable and all dependencies
@@ -57,22 +57,27 @@ Source: "MODELS.md"; DestDir: "{app}"; Flags: ignoreversion
 Source: "config.yaml"; DestDir: "{app}"; Flags: ignoreversion
 Source: ".env.example"; DestDir: "{app}"; Flags: ignoreversion
 
-; NOTE: Don't use "Flags: ignoreversion" on any shared system files
-
 [Dirs]
 Name: "{app}\input"; Permissions: users-full
 Name: "{app}\output"; Permissions: users-full
 Name: "{app}\models"; Permissions: users-full
 
 [Icons]
-Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Parameters: "--interactive"
-Name: "{group}\{#MyAppName} Help"; Filename: "{app}\README.md"
+; Console mode
+Name: "{group}\LLCAR Console"; Filename: "{app}\{#MyAppExeName}"; Parameters: "--interactive"; Comment: "Launch LLCAR interactive console"
+; GUI mode
+Name: "{group}\LLCAR GUI"; Filename: "{app}\{#MyAppExeName}"; Parameters: "--gui"; Comment: "Launch LLCAR graphical interface"
+; Documentation
+Name: "{group}\LLCAR Documentation"; Filename: "{app}\README.md"
+; Uninstall
 Name: "{group}\{cm:UninstallProgram,{#MyAppName}}"; Filename: "{uninstallexe}"
-Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Parameters: "--interactive"; Tasks: desktopicon
+; Desktop shortcuts
+Name: "{autodesktop}\LLCAR Console"; Filename: "{app}\{#MyAppExeName}"; Parameters: "--interactive"; Tasks: desktopicon
+Name: "{autodesktop}\LLCAR GUI"; Filename: "{app}\{#MyAppExeName}"; Parameters: "--gui"; Tasks: desktopicon_gui
 
 [Run]
+Filename: "{app}\{#MyAppExeName}"; Parameters: "--gui"; Description: "Launch LLCAR GUI"; Flags: nowait postinstall skipifsilent
 Filename: "{app}\README.md"; Description: "View README"; Flags: postinstall shellexec skipifsilent unchecked
-Filename: "{app}\{#MyAppExeName}"; Parameters: "--help"; Description: "{cm:LaunchProgram,{#StringChange(MyAppName, '&', '&&')}}"; Flags: nowait postinstall skipifsilent unchecked
 
 [Code]
 var
@@ -105,7 +110,7 @@ begin
     'Configure your HuggingFace token (Optional)',
     'LLCAR requires a HuggingFace token for speaker diarization.' + #13#10 +
     'You can get a free token at: https://huggingface.co/settings/tokens' + #13#10 + #13#10 +
-    'You can configure this later by editing the .env file.'
+    'You can configure this later by editing the .env file in the install directory.'
   );
   HFTokenPage.Add('HuggingFace Token:', False);
 end;

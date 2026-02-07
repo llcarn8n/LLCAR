@@ -62,6 +62,9 @@ Examples:
   # Launch interactive console mode
   python main.py --interactive
 
+  # Launch graphical user interface
+  python main.py --gui
+
   # Process a video file
   python main.py --video /path/to/video.mp4
 
@@ -82,11 +85,16 @@ Examples:
         """
     )
 
-    # Interactive mode argument
+    # Mode arguments
     parser.add_argument(
         '--interactive', '-i',
         action='store_true',
         help='Launch interactive console mode'
+    )
+    parser.add_argument(
+        '--gui',
+        action='store_true',
+        help='Launch graphical user interface (GUI) mode'
     )
 
     # Input arguments
@@ -213,10 +221,17 @@ Examples:
         console = InteractiveConsole(config=config)
         return console.run()
 
+    # Check if GUI mode
+    if args.gui:
+        logger.info("Starting LLCAR in GUI mode")
+        from gui import main as gui_main
+        gui_main()
+        return 0
+
     # Check if video or audio is provided
     if not args.video and not args.audio:
         parser.print_help()
-        print("\nError: Either --video, --audio, or --interactive must be specified")
+        print("\nError: Either --video, --audio, --interactive, or --gui must be specified")
         return 1
 
     logger.info("Starting LLCAR Video Processing Pipeline")
