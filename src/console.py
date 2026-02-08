@@ -150,9 +150,9 @@ class InteractiveConsole:
             Selected file path or None
         """
         if file_type == "video":
-            extensions = ['.mp4', '.avi', '.mkv', '.mov', '.webm']
+            extensions = ['.mp4', '.m4v', '.avi', '.mkv', '.mov', '.webm', '.wmv', '.flv', '.mpg', '.mpeg']
         else:
-            extensions = ['.wav', '.mp3', '.flac', '.ogg', '.m4a']
+            extensions = ['.wav', '.mp3', '.flac', '.ogg', '.m4a', '.wma', '.aac', '.opus']
 
         print(f"\n📁 Browsing for {file_type} files...")
 
@@ -409,8 +409,8 @@ class InteractiveConsole:
             return
 
         # Find files
-        video_extensions = ['.mp4', '.avi', '.mkv', '.mov', '.webm']
-        audio_extensions = ['.wav', '.mp3', '.flac', '.ogg', '.m4a']
+        video_extensions = ['.mp4', '.m4v', '.avi', '.mkv', '.mov', '.webm', '.wmv', '.flv', '.mpg', '.mpeg']
+        audio_extensions = ['.wav', '.mp3', '.flac', '.ogg', '.m4a', '.wma', '.aac', '.opus']
 
         all_files = []
         for ext in video_extensions + audio_extensions:
@@ -675,8 +675,8 @@ class InteractiveConsole:
             input("\nPress Enter to continue...")
             return
 
-        video_exts = {'.mp4', '.avi', '.mkv', '.mov', '.webm'}
-        audio_exts = {'.wav', '.mp3', '.flac', '.ogg', '.m4a'}
+        video_exts = {'.mp4', '.m4v', '.avi', '.mkv', '.mov', '.webm', '.wmv', '.flv', '.mpg', '.mpeg'}
+        audio_exts = {'.wav', '.mp3', '.flac', '.ogg', '.m4a', '.wma', '.aac', '.opus'}
         ext = file_path.suffix.lower()
 
         if ext in video_exts:

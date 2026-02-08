@@ -267,15 +267,21 @@ Examples:
     keyword_method = args.keyword_method or config.get('keywords', {}).get('method', 'tfidf')
     top_keywords = args.top_keywords or config.get('keywords', {}).get('top_n', 10)
 
+    # Audio processing parameters
+    enable_noise_reduction = config.get('audio', {}).get('noise_reduction', True)
+
     try:
         # Initialize pipeline
         logger.info(f"Initializing pipeline with language={language}, model={model_variant}, device={device}")
+        if enable_noise_reduction:
+            logger.info("Audio noise reduction: ENABLED")
         pipeline = VideoPipeline(
             language=language,
             model_variant=model_variant,
             hf_token=hf_token,
             device=device,
-            output_dir=output_dir
+            output_dir=output_dir,
+            enable_noise_reduction=enable_noise_reduction
         )
 
         # Process input

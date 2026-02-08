@@ -339,6 +339,47 @@ python main.py --video russian_lecture.mp4 --language ru --model-variant alterna
 python main.py --video chinese_meeting.mp4 --language zh --model-variant default
 ```
 
+## Поддерживаемые форматы файлов
+
+### Видео форматы
+LLCAR поддерживает следующие видео форматы:
+- **MP4** (`.mp4`, `.m4v`) - MPEG-4 Video
+- **AVI** (`.avi`) - Audio Video Interleave
+- **MOV** (`.mov`) - QuickTime Movie
+- **MKV** (`.mkv`) - Matroska Video
+- **WMV** (`.wmv`) - Windows Media Video
+- **FLV** (`.flv`) - Flash Video
+- **WebM** (`.webm`) - WebM Video
+- **MPG/MPEG** (`.mpg`, `.mpeg`) - MPEG Video
+
+### Аудио форматы
+LLCAR также поддерживает прямую обработку аудио файлов:
+- **WAV** (`.wav`) - Waveform Audio File
+- **MP3** (`.mp3`) - MP3 Audio
+- **FLAC** (`.flac`) - Free Lossless Audio Codec
+- **OGG** (`.ogg`) - Ogg Vorbis Audio
+- **M4A** (`.m4a`) - MPEG-4 Audio
+- **WMA** (`.wma`) - Windows Media Audio
+- **AAC** (`.aac`) - Advanced Audio Coding
+- **OPUS** (`.opus`) - Opus Audio
+
+**Примечание:** При обработке видео файлов аудио автоматически извлекается. При обработке аудио файлов шаг извлечения пропускается.
+
+### Улучшение качества распознавания речи
+
+LLCAR автоматически применяет фильтры для улучшения качества распознавания речи:
+
+**Шумоподавление (включено по умолчанию):**
+- **Highpass filter (200 Hz)** - Удаление низкочастотного шума и гула
+- **Lowpass filter (3000 Hz)** - Удаление высокочастотного шума (речь обычно 80-3000 Гц)
+- **FFT Denoiser (afftdn)** - Адаптивное шумоподавление на основе FFT
+
+Для отключения шумоподавления измените в `config.yaml`:
+```yaml
+audio:
+  noise_reduction: false  # Отключить фильтры шумоподавления
+```
+
 ## Конфигурация
 
 Настройки можно задать в файле `config.yaml`:
@@ -378,6 +419,12 @@ keywords:
   enabled: true
   method: "tfidf"  # tfidf or textrank
   top_n: 10
+
+# Audio extraction and processing
+audio:
+  sample_rate: 16000
+  channels: 1
+  noise_reduction: true  # Enable noise reduction filters
 ```
 
 ## Структура проекта
