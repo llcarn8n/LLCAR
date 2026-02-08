@@ -251,7 +251,7 @@ class InteractiveConsole:
             top_keywords_str = self.get_input("Number of top keywords", "10")
             top_keywords = int(top_keywords_str) if top_keywords_str.isdigit() else 10
 
-        print("\nOutput formats: json, txt, csv")
+        print("\nOutput formats: json, txt, csv, plain")
         formats_input = self.get_input("Select formats (comma-separated)", "json,txt")
         save_formats = [f.strip() for f in formats_input.split(',')]
 
@@ -441,7 +441,7 @@ class InteractiveConsole:
         if extract_keywords:
             keyword_method = self.get_input("Keyword method (tfidf/textrank)", "tfidf")
 
-        formats_input = self.get_input("Output formats (comma-separated)", "json,txt")
+        formats_input = self.get_input("Output formats (comma-separated, options: json,txt,csv,plain)", "json,txt")
         save_formats = [f.strip() for f in formats_input.split(',')]
 
         # Initialize pipeline if needed
@@ -752,7 +752,8 @@ class InteractiveConsole:
         print("\n⚙️  Processing Options:")
         print("  • Number of speakers: Auto-detect or specify (2, 3, etc.)")
         print("  • Keyword extraction: TF-IDF or TextRank methods")
-        print("  • Output formats: JSON (detailed), TXT (readable), CSV (tabular)")
+        print("  • Output formats: JSON (detailed), TXT (readable), CSV (tabular), Plain (text only)")
+        print("    - Plain format: Pure text without timestamps or speaker labels")
 
         print("\n💡 Tips:")
         print("  • For best results, use clean audio with minimal background noise")
