@@ -151,13 +151,56 @@ class OutputFormatter:
                     else:
                         f.write(text + "\n")
 
-                    f.write("\n")
+                    # Only add blank line if we have timestamps or speakers
+                    if include_timestamps or include_speakers:
+                        f.write("\n")
 
             logger.info(f"Text output saved to {output_path}")
             return str(output_path)
 
         except Exception as e:
             logger.error(f"Error saving text: {e}")
+            raise
+
+    def save_plain_text(
+        self,
+        segments: List[Dict[str, Any]],
+        filename: Optional[str] = None
+    ) -> str:
+        """
+        Save transcription as plain text file without timestamps or speakers.
+        Each segment is written as continuous text with space separation.
+
+        Args:
+            segments: List of transcription segments
+            filename: Output filename (optional)
+
+        Returns:
+            Path to saved file
+        """
+        if filename is None:
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            filename = f"transcription_{timestamp}_plain.txt"
+
+        output_path = self.output_dir / filename
+
+        try:
+            with open(output_path, 'w', encoding='utf-8') as f:
+                text_parts = []
+                for segment in segments:
+                    text = segment.get("text", "").strip()
+                    if text:
+                        text_parts.append(text)
+
+                # Join all text parts with space
+                full_text = " ".join(text_parts)
+                f.write(full_text)
+
+            logger.info(f"Plain text output saved to {output_path}")
+            return str(output_path)
+
+        except Exception as e:
+            logger.error(f"Error saving plain text: {e}")
             raise
 
     def _format_timestamp(self, seconds: float) -> str:

@@ -27,6 +27,8 @@ output:
     - "json"
     - "txt"
     - "csv"
+    # Uncomment to enable plain text output (no timestamps, no speakers)
+    # - "plain"
 
 # Speaker diarization settings
 diarization:

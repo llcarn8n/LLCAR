@@ -144,6 +144,19 @@ def test_output_formatter():
             txt_path = formatter.save_text(test_segments, "test.txt")
             print(f"✓ TXT saved to {txt_path}")
 
+            # Test plain text output
+            plain_path = formatter.save_plain_text(test_segments, "test_plain.txt")
+            print(f"✓ Plain TXT saved to {plain_path}")
+
+            # Verify plain text content
+            with open(plain_path, 'r', encoding='utf-8') as f:
+                plain_content = f.read()
+            expected_plain = "Hello, this is a test Yes, testing the system"
+            if plain_content == expected_plain:
+                print(f"✓ Plain text content verified")
+            else:
+                print(f"⚠ Plain text content: '{plain_content}'")
+
             # Test summary report
             report = formatter.create_summary_report(
                 segments=test_segments,

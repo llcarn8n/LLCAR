@@ -192,6 +192,13 @@ class VideoPipeline:
             )
             output_files["txt"] = txt_path
 
+        if "plain" in save_formats or "plain_text" in save_formats:
+            plain_txt_path = self.output_formatter.save_plain_text(
+                processed_segments,
+                filename=f"{base_filename}_plain.txt"
+            )
+            output_files["plain_text"] = plain_txt_path
+
         results["steps"]["output"] = {
             "output_files": output_files,
             "status": "completed"

@@ -149,8 +149,8 @@ Examples:
     parser.add_argument(
         '--formats', '-f',
         nargs='+',
-        choices=['json', 'csv', 'txt'],
-        help='Output formats (default: json txt)'
+        choices=['json', 'csv', 'txt', 'plain'],
+        help='Output formats (default: json txt). Use "plain" for plain text without timestamps/speakers'
     )
 
     # Keyword extraction arguments
