@@ -78,7 +78,7 @@ Examples:
   python main.py --video video.mp4 --num-speakers 2
 
   # Save output in specific formats
-  python main.py --video video.mp4 --formats json txt csv
+  python main.py --video video.mp4 --formats json txt csv plain
 
   # Use custom configuration file
   python main.py --video video.mp4 --config custom_config.yaml
