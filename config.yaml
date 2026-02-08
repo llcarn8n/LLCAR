@@ -27,6 +27,8 @@ output:
     - "json"
     - "txt"
     - "csv"
+    # Uncomment to enable plain text output (no timestamps, no speakers)
+    # - "plain"
 
 # Speaker diarization settings
 diarization:
@@ -55,6 +57,9 @@ audio:
   sample_rate: 16000
   # Number of audio channels (1 for mono)
   channels: 1
+  # Enable noise reduction and audio enhancement filters
+  # Applies highpass, lowpass, and FFT denoising for better speech recognition
+  noise_reduction: true
 
 # Logging settings
 logging:

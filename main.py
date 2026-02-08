@@ -78,7 +78,7 @@ Examples:
   python main.py --video video.mp4 --num-speakers 2
 
   # Save output in specific formats
-  python main.py --video video.mp4 --formats json txt csv
+  python main.py --video video.mp4 --formats json txt csv plain
 
   # Use custom configuration file
   python main.py --video video.mp4 --config custom_config.yaml
@@ -149,8 +149,8 @@ Examples:
     parser.add_argument(
         '--formats', '-f',
         nargs='+',
-        choices=['json', 'csv', 'txt'],
-        help='Output formats (default: json txt)'
+        choices=['json', 'csv', 'txt', 'plain'],
+        help='Output formats (default: json txt). Use "plain" for plain text without timestamps/speakers'
     )
 
     # Keyword extraction arguments
@@ -267,15 +267,21 @@ Examples:
     keyword_method = args.keyword_method or config.get('keywords', {}).get('method', 'tfidf')
     top_keywords = args.top_keywords or config.get('keywords', {}).get('top_n', 10)
 
+    # Audio processing parameters
+    enable_noise_reduction = config.get('audio', {}).get('noise_reduction', True)
+
     try:
         # Initialize pipeline
         logger.info(f"Initializing pipeline with language={language}, model={model_variant}, device={device}")
+        if enable_noise_reduction:
+            logger.info("Audio noise reduction: ENABLED")
         pipeline = VideoPipeline(
             language=language,
             model_variant=model_variant,
             hf_token=hf_token,
             device=device,
-            output_dir=output_dir
+            output_dir=output_dir,
+            enable_noise_reduction=enable_noise_reduction
         )
 
         # Process input

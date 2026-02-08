@@ -36,7 +36,8 @@ class VideoPipeline:
         model_variant: str = "default",
         hf_token: Optional[str] = None,
         device: str = "auto",
-        output_dir: str = "./output"
+        output_dir: str = "./output",
+        enable_noise_reduction: bool = True
     ):
         """
         Initialize VideoPipeline.
@@ -47,6 +48,7 @@ class VideoPipeline:
             hf_token: HuggingFace token for pyannote
             device: Device to use ('cuda', 'cpu', or 'auto')
             output_dir: Directory for output files
+            enable_noise_reduction: Enable audio noise reduction filters
         """
         self.language = language
         self.model_variant = model_variant
@@ -56,7 +58,7 @@ class VideoPipeline:
         # Initialize components
         logger.info("Initializing pipeline components...")
 
-        self.audio_extractor = AudioExtractor()
+        self.audio_extractor = AudioExtractor(enable_noise_reduction=enable_noise_reduction)
         self.diarizer = SpeakerDiarizer(hf_token=hf_token, device=device)
         self.transcriber = Transcriber(
             language=language,
@@ -191,6 +193,13 @@ class VideoPipeline:
                 filename=f"{base_filename}_transcript.txt"
             )
             output_files["txt"] = txt_path
+
+        if "plain" in save_formats or "plain_text" in save_formats:
+            plain_txt_path = self.output_formatter.save_plain_text(
+                processed_segments,
+                filename=f"{base_filename}_plain.txt"
+            )
+            output_files["plain_text"] = plain_txt_path
 
         results["steps"]["output"] = {
             "output_files": output_files,

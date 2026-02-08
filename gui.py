@@ -54,6 +54,7 @@ class LLCARGui:
         self.format_json = tk.BooleanVar(value=True)
         self.format_txt = tk.BooleanVar(value=True)
         self.format_csv = tk.BooleanVar(value=False)
+        self.format_plain = tk.BooleanVar(value=False)
 
         # Processing state
         self.is_processing = False
@@ -206,6 +207,8 @@ class LLCARGui:
             row=0, column=1, sticky=tk.W, padx=20)
         ttk.Checkbutton(formats_frame, text="CSV (table)", variable=self.format_csv).grid(
             row=0, column=2, sticky=tk.W)
+        ttk.Checkbutton(formats_frame, text="Plain (text only)", variable=self.format_plain).grid(
+            row=0, column=3, sticky=tk.W, padx=20)
 
         # ── Control Buttons ──────────────────────────────────────────
         controls_frame = ttk.Frame(main_frame)
@@ -270,8 +273,8 @@ class LLCARGui:
     def browse_input(self):
         """Browse for input video/audio file"""
         filetypes = [
-            ("Video files", "*.mp4 *.avi *.mov *.mkv *.wmv *.flv *.webm"),
-            ("Audio files", "*.wav *.mp3 *.flac *.ogg *.m4a"),
+            ("Video files", "*.mp4 *.m4v *.avi *.mov *.mkv *.wmv *.flv *.webm *.mpg *.mpeg"),
+            ("Audio files", "*.wav *.mp3 *.flac *.ogg *.m4a *.wma *.aac *.opus"),
             ("All files", "*.*")
         ]
         filename = filedialog.askopenfilename(title="Select Video or Audio File",
@@ -407,6 +410,8 @@ class LLCARGui:
                 formats.append('txt')
             if self.format_csv.get():
                 formats.append('csv')
+            if self.format_plain.get():
+                formats.append('plain')
             if not formats:
                 formats = ['json', 'txt']
 
@@ -430,7 +435,7 @@ class LLCARGui:
 
             # Determine if input is video or audio
             input_ext = Path(input_path).suffix.lower()
-            audio_exts = ['.wav', '.mp3', '.flac', '.ogg', '.m4a']
+            audio_exts = ['.wav', '.mp3', '.flac', '.ogg', '.m4a', '.wma', '.aac', '.opus']
             is_audio = input_ext in audio_exts
 
             if is_audio:
