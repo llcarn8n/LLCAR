@@ -270,18 +270,24 @@ Examples:
     # Audio processing parameters
     enable_noise_reduction = config.get('audio', {}).get('noise_reduction', True)
 
+    # Automotive analysis parameters
+    enable_automotive_analysis = config.get('automotive', {}).get('enabled', True)
+
     try:
         # Initialize pipeline
         logger.info(f"Initializing pipeline with language={language}, model={model_variant}, device={device}")
         if enable_noise_reduction:
             logger.info("Audio noise reduction: ENABLED")
+        if enable_automotive_analysis:
+            logger.info("Automotive typology analysis: ENABLED")
         pipeline = VideoPipeline(
             language=language,
             model_variant=model_variant,
             hf_token=hf_token,
             device=device,
             output_dir=output_dir,
-            enable_noise_reduction=enable_noise_reduction
+            enable_noise_reduction=enable_noise_reduction,
+            enable_automotive_analysis=enable_automotive_analysis
         )
 
         # Process input
@@ -316,6 +322,18 @@ Examples:
 
         if extract_keywords:
             print(f"Keywords extracted: {len(results.get('keywords', []))}")
+
+        # Display automotive analysis summary
+        if enable_automotive_analysis and results.get('automotive_typology'):
+            auto_summary = results['automotive_typology']['summary']
+            print(f"\nAutomotive Analysis:")
+            print(f"  - Automotive segments: {auto_summary['total_automotive_segments']}/{auto_summary['total_segments']}")
+            if auto_summary['manufacturers']:
+                top_manufacturers = auto_summary['manufacturers'][:3]
+                print(f"  - Top manufacturers: {', '.join([m['manufacturer'] for m in top_manufacturers])}")
+            if auto_summary['vehicle_types']:
+                top_types = auto_summary['vehicle_types'][:3]
+                print(f"  - Vehicle types: {', '.join([t['type'] for t in top_types])}")
 
         print("\nOutput files:")
         for format_type, file_path in results.get('output_files', {}).items():

@@ -12,7 +12,7 @@ from datetime import datetime
 from .audio_extraction import AudioExtractor
 from .diarization import SpeakerDiarizer
 from .transcription import Transcriber
-from .postprocessing import TextPostProcessor, KeywordExtractor
+from .postprocessing import TextPostProcessor, KeywordExtractor, ComprehensivePostProcessor
 from .output import OutputFormatter
 
 logger = logging.getLogger(__name__)
@@ -37,7 +37,8 @@ class VideoPipeline:
         hf_token: Optional[str] = None,
         device: str = "auto",
         output_dir: str = "./output",
-        enable_noise_reduction: bool = True
+        enable_noise_reduction: bool = True,
+        enable_automotive_analysis: bool = True
     ):
         """
         Initialize VideoPipeline.
@@ -49,11 +50,13 @@ class VideoPipeline:
             device: Device to use ('cuda', 'cpu', or 'auto')
             output_dir: Directory for output files
             enable_noise_reduction: Enable audio noise reduction filters
+            enable_automotive_analysis: Enable automotive typology analysis
         """
         self.language = language
         self.model_variant = model_variant
         self.device = device
         self.output_dir = output_dir
+        self.enable_automotive_analysis = enable_automotive_analysis
 
         # Initialize components
         logger.info("Initializing pipeline components...")
@@ -139,6 +142,8 @@ class VideoPipeline:
         processed_segments = self.text_processor.process_segments(transcription_segments)
 
         keywords = []
+        automotive_typology = None
+
         if extract_keywords:
             keywords = self.keyword_extractor.extract_keywords_from_segments(
                 processed_segments,
@@ -147,9 +152,20 @@ class VideoPipeline:
             )
             logger.info(f"Extracted {len(keywords)} keywords")
 
+        # Perform automotive typology analysis if enabled
+        if self.enable_automotive_analysis:
+            from .automotive_typology import AutomotiveTypologyAnalyzer
+            automotive_analyzer = AutomotiveTypologyAnalyzer(language=self.language)
+            automotive_typology = automotive_analyzer.analyze_segments(processed_segments)
+            logger.info(
+                f"Automotive analysis: {automotive_typology['summary']['total_automotive_segments']}/"
+                f"{automotive_typology['summary']['total_segments']} segments contain automotive content"
+            )
+
         results["steps"]["postprocessing"] = {
             "num_keywords": len(keywords),
             "keyword_method": keyword_method,
+            "automotive_analysis_enabled": self.enable_automotive_analysis,
             "status": "completed"
         }
 
@@ -161,6 +177,7 @@ class VideoPipeline:
             segments=processed_segments,
             keywords=keywords,
             speaker_stats=speaker_stats,
+            automotive_typology=automotive_typology,
             metadata={
                 source_path_key: source_path_value,
                 "language": self.language,
@@ -210,6 +227,7 @@ class VideoPipeline:
         results["segments"] = processed_segments
         results["keywords"] = keywords
         results["speaker_statistics"] = speaker_stats
+        results["automotive_typology"] = automotive_typology
         results["output_files"] = output_files
         results["end_time"] = datetime.now().isoformat()
         results["total_processing_time"] = (datetime.now() - start_time).total_seconds()

@@ -51,6 +51,14 @@ keywords:
   # Number of top keywords to extract
   top_n: 10
 
+# Automotive typology settings
+automotive:
+  # Enable automotive typology analysis
+  # Detects and classifies vehicle types, manufacturers, models, systems, and diagnostic terms
+  enabled: true
+  # Minimum automotive mentions threshold for segment classification
+  mention_threshold: 1
+
 # Audio extraction settings
 audio:
   # Sample rate in Hz (16000 recommended for ASR)
