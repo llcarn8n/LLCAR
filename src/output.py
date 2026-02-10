@@ -223,7 +223,8 @@ class OutputFormatter:
         segments: List[Dict[str, Any]],
         keywords: List[Dict[str, Any]],
         speaker_stats: Optional[Dict[str, float]] = None,
-        metadata: Optional[Dict[str, Any]] = None
+        metadata: Optional[Dict[str, Any]] = None,
+        automotive_typology: Optional[Dict[str, Any]] = None
     ) -> Dict[str, Any]:
         """
         Create a comprehensive summary report.
@@ -233,6 +234,7 @@ class OutputFormatter:
             keywords: List of extracted keywords
             speaker_stats: Speaker statistics (speaking time)
             metadata: Additional metadata
+            automotive_typology: Automotive typology analysis results
 
         Returns:
             Summary report dictionary
@@ -268,5 +270,9 @@ class OutputFormatter:
         # Add speaker statistics if available
         if speaker_stats:
             report["speaker_statistics"] = speaker_stats
+
+        # Add automotive typology analysis if available
+        if automotive_typology:
+            report["automotive_typology"] = automotive_typology
 
         return report

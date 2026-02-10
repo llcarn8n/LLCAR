@@ -1,13 +1,14 @@
 """
 Post-processing Module
-Cleans text, removes filler words, extracts keywords, and performs NER.
+Cleans text, removes filler words, extracts keywords, performs NER, and automotive typology analysis.
 """
 
 import re
 import logging
-from typing import List, Dict, Any, Set
+from typing import List, Dict, Any, Set, Optional
 from sklearn.feature_extraction.text import TfidfVectorizer
 from summa import keywords as summa_keywords
+from .automotive_typology import AutomotiveTypologyAnalyzer
 
 logger = logging.getLogger(__name__)
 
@@ -317,3 +318,79 @@ class KeywordExtractor:
         else:
             logger.warning(f"Unknown method: {method}. Using TF-IDF.")
             return self.extract_tfidf_keywords(texts, top_n)
+
+
+class ComprehensivePostProcessor:
+    """Comprehensive post-processing including text cleaning, keywords, and automotive analysis."""
+
+    def __init__(
+        self,
+        language: str = "en",
+        remove_fillers: bool = True,
+        remove_profanity: bool = True,
+        extract_keywords: bool = True,
+        keyword_method: str = "tfidf",
+        top_keywords: int = 10,
+        enable_automotive_analysis: bool = True
+    ):
+        """
+        Initialize ComprehensivePostProcessor.
+
+        Args:
+            language: Language code ('en', 'ru', 'zh')
+            remove_fillers: Whether to remove filler words
+            remove_profanity: Whether to censor profanity
+            extract_keywords: Whether to extract keywords
+            keyword_method: Keyword extraction method ('tfidf' or 'textrank')
+            top_keywords: Number of top keywords to extract
+            enable_automotive_analysis: Whether to perform automotive typology analysis
+        """
+        self.language = language
+        self.extract_keywords = extract_keywords
+        self.keyword_method = keyword_method
+        self.top_keywords = top_keywords
+        self.enable_automotive_analysis = enable_automotive_analysis
+
+        # Initialize sub-processors
+        self.text_processor = TextPostProcessor(language, remove_fillers, remove_profanity)
+        self.keyword_extractor = KeywordExtractor(language) if extract_keywords else None
+        self.automotive_analyzer = AutomotiveTypologyAnalyzer(language) if enable_automotive_analysis else None
+
+        logger.info(
+            f"ComprehensivePostProcessor initialized: "
+            f"language={language}, keywords={extract_keywords}, automotive={enable_automotive_analysis}"
+        )
+
+    def process(self, segments: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """
+        Perform comprehensive post-processing on transcription segments.
+
+        Args:
+            segments: List of transcription segments
+
+        Returns:
+            Dictionary containing processed segments, keywords, and automotive analysis
+        """
+        result = {
+            'segments': [],
+            'keywords': [],
+            'automotive_typology': None
+        }
+
+        # Process text in segments
+        processed_segments = self.text_processor.process_segments(segments)
+        result['segments'] = processed_segments
+
+        # Extract keywords
+        if self.extract_keywords and self.keyword_extractor:
+            result['keywords'] = self.keyword_extractor.extract_keywords_from_segments(
+                processed_segments,
+                method=self.keyword_method,
+                top_n=self.top_keywords
+            )
+
+        # Perform automotive typology analysis
+        if self.enable_automotive_analysis and self.automotive_analyzer:
+            result['automotive_typology'] = self.automotive_analyzer.analyze_segments(processed_segments)
+
+        return result
